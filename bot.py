@@ -1,3 +1,5 @@
+#!/bin/python3
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -32,33 +34,35 @@ async def findname(ctx):
             headers = {
                     'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36'
                     }
-            url = 'https://trace.moe/api/search?url=' + jpgurl
+            url = 'https://api.trace.moe/search?anilistInfo&url=' + jpgurl
             r = requests.get(url, headers = headers)
-            seconds = int(r.json()['docs'][0]['at'])
+            seconds = int(r.json()['result'][0]['from'])
             m, s = divmod(seconds, 60)
             h, m = divmod(m, 60)
             await ctx.send(jpgurl)
-            await ctx.send(r.json()['docs'][0]['title_native'] + '\n' + 
-                            r.json()['docs'][0]['title_chinese'] + '\n' + 
-                            r.json()['docs'][0]['title_romaji'] + '\n' + 
-                            r.json()['docs'][0]['title_english'] + '\n' + 
-                            'EP#' + str(r.json()['docs'][0]['episode']).zfill(2) + ' ' + str(h).zfill(2) + ':' + str(m).zfill(2) + ':' + str(s).zfill(2) + '\n' + 
-                            ('%.2f%%' % (float(r.json()['docs'][0]['similarity']) * 100) + ' similarity'))
-            
-            videourl = 'https://media.trace.moe/video/' + str(r.json()['docs'][0]['anilist_id']) + '/' + r.json()['docs'][0]['filename'] + '?t=' + str(r.json()['docs'][0]['at']) + '&token=' + r.json()['docs'][0]['tokenthumb']
+            await ctx.send(str(r.json()['result'][0]['anilist']['title']['native']) + '\n' + 
+#                            str(r.json()['result'][0]['anilist']['title']['chinese']) + '\n' + 
+                            str(r.json()['result'][0]['anilist']['title']['romaji']) + '\n' + 
+                            str(r.json()['result'][0]['anilist']['title']['english']) + '\n' + 
+                            'EP#' + str(r.json()['result'][0]['episode']).zfill(2) + ' ' + str(h).zfill(2) + ':' + str(m).zfill(2) + ':' + str(s).zfill(2) + '\n' + 
+                            ('%.2f%%' % (float(r.json()['result'][0]['similarity']) * 100) + ' similarity'))
+
+            videourl = r.json()['result'][0]['video']
+#            videourl = 'https://media.trace.moe/video/' + str(r.json()['docs'][0]['anilist_id']) + '/' + r.json()['docs'][0]['filename'] + '?t=' + str(r.json()['docs'][0]['at']) + '&token=' + r.json()['docs'][0]['tokenthumb']
 
             #print(videourl)
             
             uuidd = uuid.uuid4()
 
-            req = requests.get(videourl, headers = headers)
-            videoname = r.json()['docs'][0]['title_english'] + str(uuidd) + '.mp4'
-            with open(videoname, "wb")as f:
-                f.write(req.content)
-                f.close()
+            if videourl != None and videourl != "":
+                req = requests.get(videourl, headers = headers)
+                videoname = r.json()['result'][0]['filename'] + str(uuidd) + '.mp4'
+                with open(videoname, "wb")as f:
+                    f.write(req.content)
+                    f.close()
 
-            await ctx.send(file=discord.File(videoname))
-            os.remove(videoname)
+                await ctx.send(file=discord.File(videoname))
+                os.remove(videoname)
 
         except Exception as e:
             error_class = e.__class__.__name__ #取得錯誤類型
